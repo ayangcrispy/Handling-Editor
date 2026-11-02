@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GTA SA Handling Editor Mobile</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome CDN for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Rajdhani', 'sans-serif'],
+          },
+          colors: {
+            gtagreen: '#10b981',
+            gtaamber: '#f59e0b',
+            gtacyan: '#06b6d4',
+            gtadark: '#0f172a',
+            gtacard: '#1e293b',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar for Mobile */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #10b981;
+    }
+
+    /* Sticky first column in table */
+    .sticky-col-header {
+      position: sticky;
+      left: 0;
+      z-index: 30;
+      background-color: #0f172a;
+      box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.5);
+    }
+    .sticky-col-cell {
+      position: sticky;
+      left: 0;
+      z-index: 20;
+      background-color: #1e293b;
+      box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Custom Input Focus Glow */
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-slate-900 pb-12">
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed top-4 right-4 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Header Banner -->
+  <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-40 px-3 py-2.5 sm:px-6">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-display font-bold text-xl">
+          SA
+        </div>
+        <div>
+          <h1 class="font-display font-bold text-lg sm:text-xl text-slate-100 tracking-wide leading-none flex items-center gap-2">
+            GTA SA Handling Editor
+            <span class="text-[10px] bg-emerald-500/20 text-emerald-400 font-sans font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30">v2.1 Mobile</span>
+          </h1>
+          <p class="text-[11px] text-slate-400 hidden sm:block">Editor fisika kendaraan GTA San Andreas untuk HP & PC</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center gap-1.5">
+        <button onclick="toggleRawPanel()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-code text-emerald-400"></i>
+          <span class="hidden sm:inline">Import/Export</span> CFG
+        </button>
+        <button onclick="copyCurrentCfg()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-900/40 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-copy"></i>
+          <span>Salin CFG</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Collapsible Raw CFG Panel -->
+  <div id="rawPanel" class="bg-slate-900 border-b border-slate-800 transition-all duration-300 hidden">
+    <div class="max-w-7xl mx-auto p-3 sm:p-5 space-y-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <label class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+          <i class="fa-solid fa-file-code"></i> Teks Konfigurasi handling.cfg (Auto-Reset Damage to 0.00)
+        </label>
+        <div class="flex items-center gap-2">
+          <button onclick="loadPresetData()" class="text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 transition">
+            <i class="fa-solid fa-bolt mr-1"></i> Muat Preset Original SA
+          </button>
+          <button onclick="clearRawText()" class="text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-rose-900/50 text-rose-300 border border-rose-500/30 transition">
+            <i class="fa-solid fa-trash mr-1"></i> Bersihkan
+          </button>
+        </div>
+      </div>
+      
+      <textarea id="rawCfgInput" rows="5" class="w-full bg-slate-950 text-slate-200 font-mono text-xs p-3 rounded-lg border border-slate-800 focus:border-emerald-500 leading-relaxed" placeholder="Paste sintaks handling.cfg di sini..."></textarea>
+
+      <div class="flex justify-end gap-2">
+        <button onclick="parseRawInput()" class="w-full sm:w-auto px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Muat Data Ke Editor
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App Navigation Tabs -->
+  <nav class="bg-slate-900/80 border-b border-slate-800 sticky top-12 z-30 px-2 py-1.5">
+    <div class="max-w-7xl mx-auto flex items-center justify-center sm:justify-start gap-1">
+      <button onclick="switchView('table')" id="nav-table" class="nav-tab flex-1 sm:flex-none px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-emerald-400 bg-slate-800 border border-slate-700">
+        <i class="fa-solid fa-table-cells"></i>
+        <span>Mode Tabel</span>
+      </button>
+
+      <button onclick="switchView('card')" id="nav-card" class="nav-tab flex-1 sm:flex-none px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
+        <i class="fa-solid fa-id-card"></i>
+        <span>Mode Kartu (Inspector)</span>
+      </button>
+
+      <button onclick="switchView('batch')" id="nav-batch" class="nav-tab flex-1 sm:flex-none px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
+        <i class="fa-solid fa-layer-group"></i>
+        <span>Edit Masal (Batch)</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Content Container -->
+  <main class="max-w-7xl mx-auto w-full px-2 sm:px-6 py-4 flex-1">
+
+    <!-- VIEW 1: MODE TABEL -->
+    <section id="view-table" class="space-y-3">
+      <!-- Search and Counter Header -->
+      <div class="flex items-center justify-between gap-2 flex-wrap bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+        <div class="relative flex-1 min-w-[200px]">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+          <input type="text" id="tableSearchInput" oninput="renderTable()" placeholder="Cari nama kendaraan (e.g. ADMIRAL)..." class="w-full bg-slate-950 text-xs text-slate-200 pl-8 pr-3 py-1.5 rounded-lg border border-slate-800 focus:border-emerald-500">
+        </div>
+        <div class="text-xs text-slate-400 font-mono px-2">
+          Total: <span id="vehicleCountBadge" class="text-emerald-400 font-bold">0</span> Kendaraan
+        </div>
+      </div>
+
+      <!-- Scrollable Table Wrapper -->
+      <div class="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-2xl">
+        <div class="overflow-x-auto max-h-[70vh]">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase tracking-wider sticky top-0 z-40 border-b border-slate-800">
+              <tr id="tableHeaderRow">
+                <!-- Dynamically Generated Th -->
+              </tr>
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-slate-800/60 font-mono">
+              <!-- Dynamically Generated Rows -->
+            </tbody>
+          </table>
+        </div>
+        <div class="p-2 text-[11px] text-slate-500 text-center bg-slate-950 border-t border-slate-800/50">
+          💡 <span class="text-slate-400">Petunjuk:</span> Klik sel mana saja untuk langsung mengedit nilai tersebut di <b>Mode Kartu</b>.
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: MODE KARTU (INSPECTOR) -->
+    <section id="view-card" class="hidden space-y-4">
+      <!-- Vehicle Navigation Header -->
+      <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-2 shadow-lg">
+        <button onclick="navigateCar(-1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center transition border border-slate-700">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+
+        <div class="flex-1 max-w-xs">
+          <select id="cardCarSelector" onchange="onCardCarSelect(this.value)" class="w-full bg-slate-950 text-slate-100 font-display font-bold text-base px-3 py-1.5 rounded-lg border border-slate-700 focus:border-emerald-500 text-center">
+            <!-- Options populated dynamically -->
+          </select>
+        </div>
+
+        <button onclick="navigateCar(1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center transition border border-slate-700">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+
+        <button onclick="resetCurrentCar()" title="Kembalikan ke Nilai Awal" class="px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-semibold border border-amber-500/30 transition flex items-center gap-1">
+          <i class="fa-solid fa-rotate-left"></i>
+          <span class="hidden sm:inline">Reset</span>
+        </button>
+      </div>
+
+      <!-- Sub-Category Tabs (Inspector) -->
+      <div class="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
+        <button onclick="switchCategory('dimensi')" id="cat-dimensi" class="cat-tab px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+          <span>🏋️ Dimensi & Massa</span>
+        </button>
+        <button onclick="switchCategory('transmisi')" id="cat-transmisi" class="cat-tab px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200">
+          <span>🏎️ Transmisi & Kemudi</span>
+        </button>
+        <button onclick="switchCategory('suspensi')" id="cat-suspensi" class="cat-tab px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200">
+          <span>🛞 Suspensi & Fisika</span>
+        </button>
+        <button onclick="switchCategory('modelflags')" id="cat-modelflags" class="cat-tab px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200">
+          <span>⚙️ Model Flags (af)</span>
+        </button>
+        <button onclick="switchCategory('handlingflags')" id="cat-handlingflags" class="cat-tab px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200">
+          <span>🔧 Handling Flags (ag)</span>
+        </button>
+        <button onclick="switchCategory('lampu')" id="cat-lampu" class="cat-tab px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200">
+          <span>💡 Lampu & Animasi</span>
+        </button>
+      </div>
+
+      <!-- Inspector Field Container -->
+      <div id="inspectorFieldsContainer" class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-4 shadow-xl">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- VIEW 3: EDIT MASAL (BATCH EDIT) -->
+    <section id="view-batch" class="hidden space-y-4">
+      <div class="bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-900 p-4 rounded-xl border border-emerald-500/30 space-y-1">
+        <h2 class="font-display font-bold text-base text-emerald-400 flex items-center gap-2">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Mode Edit Masal (Batch Modifier)
+        </h2>
+        <p class="text-xs text-slate-300">Aktifkan sakelar <span class="text-emerald-400 font-semibold">[ON]</span> pada parameter yang ingin Anda ubah sekaligus pada mobil-mobil terpilih.</p>
+      </div>
+
+      <!-- Batch Preset Selector Bar -->
+      <div class="flex items-center justify-between flex-wrap gap-2 bg-slate-900 p-3 rounded-xl border border-slate-800">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-amber-400 text-sm"></i>
+          <span class="text-xs font-bold text-slate-200">Preset Kustom Masal:</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="applyDriftBatchPreset()" class="px-3.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/40 transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-gauge-high"></i>
+            <span>Muat Preset Drift</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Batch Category Selector -->
+      <div class="flex items-center gap-1 overflow-x-auto pb-1">
+        <button onclick="switchBatchCategory('dimensi')" id="bcat-dimensi" class="bcat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">Dimensi & Massa</button>
+        <button onclick="switchBatchCategory('transmisi')" id="bcat-transmisi" class="bcat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition text-slate-400 hover:text-slate-200">Transmisi & Kemudi</button>
+        <button onclick="switchBatchCategory('suspensi')" id="bcat-suspensi" class="bcat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition text-slate-400 hover:text-slate-200">Suspensi & Fisika</button>
+        <button onclick="switchBatchCategory('modelflags')" id="bcat-modelflags" class="bcat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition text-slate-400 hover:text-slate-200">Model Flags (af)</button>
+        <button onclick="switchBatchCategory('handlingflags')" id="bcat-handlingflags" class="bcat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition text-slate-400 hover:text-slate-200">Handling Flags (ag)</button>
+        <button onclick="switchBatchCategory('lampu')" id="bcat-lampu" class="bcat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition text-slate-400 hover:text-slate-200">Lampu & Animasi</button>
+      </div>
+
+      <!-- Batch Parameter Fields Panel -->
+      <div id="batchFieldsContainer" class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-4">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Target Vehicle Selector Grid -->
+      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3">
+        <div class="flex items-center justify-between flex-wrap gap-2 border-b border-slate-800 pb-2">
+          <label class="text-xs font-bold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-car-side text-emerald-400"></i> Pilih Mobil Target
+          </label>
+          <div class="flex items-center gap-2">
+            <button onclick="selectAllBatchVehicles(true)" class="text-[11px] px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700">
+              ☒ Pilih Semua
+            </button>
+            <button onclick="selectAllBatchVehicles(false)" class="text-[11px] px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700">
+              ☐ Batal Semua
+            </button>
+          </div>
+        </div>
+
+        <div id="batchCarList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Apply Button -->
+        <button onclick="applyBatchEdit()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-xl transition flex items-center justify-center gap-2 mt-4">
+          <i class="fa-solid fa-bolt text-lg"></i>
+          <span>Terapkan Perubahan Masal</span>
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- JavaScript Logic -->
+  <script>
+    // ==========================================
+    // DATA METADATA DEFINITIONS (36 FIELDS TOTAL)
+    // ==========================================
+    const FIELD_KEYS = [
+      'identifier', 'mass', 'turnmass', 'drag', 'centerx', 'centery', 'centerz', 'submerged',
+      'tractionmult', 'tractionloss', 'tractionbias', 'gears', 'maxspeed', 'accel', 'inertia',
+      'drivetype', 'enginetype', 'brake', 'brakebias', 'abs', 'steer', 'susforce', 'susdamp',
+      'sushighspd', 'susupper', 'suslower', 'susbias', 'antidive', 'seat', 'damage', 'cost',
+      'modelflags', 'handlingflags', 'frontlights', 'rearlights', 'animgroup'
+    ];
+
+    // VISIBLE FIELDS FOR UI (Hiding 'damage' / 'ab' from UI views)
+    const VISIBLE_FIELD_KEYS = FIELD_KEYS.filter(k => k !== 'damage');
+
+    const FIELD_METADATA = {
+      identifier: { label: 'Nama Mobil', code: 'A', cat: 'meta', type: 'string' },
+      mass: { label: 'Massa / Berat (kg)', code: 'B', cat: 'dimensi', type: 'float', min: 1, max: 100000, step: 50 },
+      turnmass: { label: 'Turn Mass', code: 'C', cat: 'dimensi', type: 'float', min: 0, max: 200000, step: 100 },
+      drag: { label: 'Drag Multiplier', code: 'D', cat: 'dimensi', type: 'float', min: 0, max: 20, step: 0.1 },
+      centerx: { label: 'Centre Of Mass X', code: 'F', cat: 'dimensi', type: 'float', min: -10, max: 10, step: 0.05 },
+      centery: { label: 'Centre Of Mass Y', code: 'G', cat: 'dimensi', type: 'float', min: -10, max: 10, step: 0.05 },
+      centerz: { label: 'Centre Of Mass Z', code: 'H', cat: 'dimensi', type: 'float', min: -10, max: 10, step: 0.05 },
+      submerged: { label: '% Submerged (Tenggelam)', code: 'I', cat: 'dimensi', type: 'int', min: 10, max: 120, step: 5 },
+      
+      tractionmult: { label: 'Traction Multiplier', code: 'J', cat: 'transmisi', type: 'float', min: 0.1, max: 5.0, step: 0.05 },
+      tractionloss: { label: 'Traction Loss', code: 'K', cat: 'transmisi', type: 'float', min: 0.0, max: 1.0, step: 0.02 },
+      tractionbias: { label: 'Traction Bias (Depan/Blk)', code: 'L', cat: 'transmisi', type: 'float', min: 0.0, max: 1.0, step: 0.02 },
+      gears: { label: 'Jumlah Gigi (Gears)', code: 'M', cat: 'transmisi', type: 'int', min: 1, max: 5, step: 1 },
+      maxspeed: { label: 'Kecepatan Maks (Velocity)', code: 'N', cat: 'transmisi', type: 'float', min: 5, max: 500, step: 5 },
+      accel: { label: 'Akselerasi Mesin', code: 'O', cat: 'transmisi', type: 'float', min: 0.1, max: 100, step: 0.5 },
+      inertia: { label: 'Engine Inertia', code: 'P', cat: 'transmisi', type: 'float', min: 0, max: 100, step: 1 },
+      drivetype: { label: 'Penggerak Roda', code: 'Q', cat: 'transmisi', type: 'enum', options: ['F', 'R', '4'] },
+      enginetype: { label: 'Tipe Mesin', code: 'R', cat: 'transmisi', type: 'enum', options: ['P', 'D', 'E'] },
+      brake: { label: 'Daya Pengereman', code: 'S', cat: 'transmisi', type: 'float', min: 0.1, max: 50, step: 0.5 },
+      brakebias: { label: 'Brake Bias (Depan/Blk)', code: 'T', cat: 'transmisi', type: 'float', min: 0, max: 1, step: 0.05 },
+      abs: { label: 'Sistem Rem ABS', code: 'U', cat: 'transmisi', type: 'enum', options: ['0', '1'] },
+      steer: { label: 'Sudut Belok (Steering Lock)', code: 'V', cat: 'transmisi', type: 'float', min: 5, max: 70, step: 1 },
+      
+      susforce: { label: 'Suspension Force Level', code: 'a', cat: 'suspensi', type: 'float', min: 0, max: 10, step: 0.05 },
+      susdamp: { label: 'Suspension Damping Level', code: 'b', cat: 'suspensi', type: 'float', min: 0, max: 10, step: 0.01 },
+      sushighspd: { label: 'Suspension High Spd Damp', code: 'c', cat: 'suspensi', type: 'float', min: 0, max: 500, step: 0.5 },
+      susupper: { label: 'Suspension Upper Limit', code: 'd', cat: 'suspensi', type: 'float', min: -1, max: 1, step: 0.02 },
+      suslower: { label: 'Suspension Lower Limit', code: 'e', cat: 'suspensi', type: 'float', min: -1, max: 1, step: 0.02 },
+      susbias: { label: 'Suspension Bias (Depan/Blk)', code: 'f', cat: 'suspensi', type: 'float', min: 0, max: 1, step: 0.05 },
+      antidive: { label: 'Anti-Dive Multiplier', code: 'g', cat: 'suspensi', type: 'float', min: 0, max: 5, step: 0.05 },
+      seat: { label: 'Seat Offset Distance', code: 'aa', cat: 'suspensi', type: 'float', min: -2, max: 2, step: 0.05 },
+      damage: { label: 'Collision Damage Multiplier', code: 'ab', cat: 'suspensi', type: 'float', min: 0, max: 10, step: 0.05 },
+      cost: { label: 'Harga Kendaraan ($)', code: 'ac', cat: 'suspensi', type: 'int', min: 0, max: 1000000, step: 1000 },
+      
+      modelflags: { label: 'Model Flags (Hex 8 Digit)', code: 'af', cat: 'modelflags', type: 'hex' },
+      handlingflags: { label: 'Handling Flags (Hex 8 Digit)', code: 'ag', cat: 'handlingflags', type: 'hex' },
+      
+      frontlights: { label: 'Lampu Depan', code: 'ah', cat: 'lampu', type: 'enum', options: ['0', '1', '2', '3'] },
+      rearlights: { label: 'Lampu Belakang', code: 'ai', cat: 'lampu', type: 'enum', options: ['0', '1', '2', '3'] },
+      animgroup: { label: 'Anim Group Kendaraan', code: 'aj', cat: 'lampu', type: 'int', min: 0, max: 30, step: 1 }
+    };
+
+    // ==========================================
+    // BITMASK DEFINITIONS FOR AF & AG
+    // ==========================================
+    const MODEL_FLAGS_DEF = [
+      { digit: 1, bits: [ { b: 1, name: 'IS_VAN', desc: 'Bentuk Van' }, { b: 2, name: 'IS_BUS', desc: 'Bentuk Bus' }, { b: 4, name: 'IS_LOW', desc: 'Mobil Lowrider' }, { b: 8, name: 'IS_BIG', desc: 'Kendaraan Besar' } ] },
+      { digit: 2, bits: [ { b: 1, name: 'REVERSE_BONNET', desc: 'Kap Mesin Buka Terbalik' }, { b: 2, name: 'HANGING_BOOT', desc: 'Bagasi Gantung' }, { b: 4, name: 'TAILGATE_BOOT', desc: 'Pintu Bagasi Belakang' }, { b: 8, name: 'NOSWING_BOOT', desc: 'Bagasi Tidak Mengayun' } ] },
+      { digit: 3, bits: [ { b: 1, name: 'NO_DOORS', desc: 'Tanpa Pintu' }, { b: 2, name: 'TANDEM_SEATS', desc: 'Kursi Tandem/Depan-Blk' }, { b: 4, name: 'SIT_IN_BOAT', desc: 'Duduk di Perahu' }, { b: 8, name: 'CONVERTIBLE', desc: 'Atap Terbuka/Lipat' } ] },
+      { digit: 4, bits: [ { b: 1, name: 'NO_EXHAUST', desc: 'Tanpa Knalpot' }, { b: 2, name: 'DOUBLE_EXHAUST', desc: 'Knalpot Ganda' }, { b: 4, name: 'NO1FPS_LOOK_BEHIND', desc: 'Matikan Kamera Belakang 1FPS' }, { b: 8, name: 'FORCE_DOOR_CHECK', desc: 'Cek Animasi Pintu' } ] },
+      { digit: 5, bits: [ { b: 1, name: 'AXLE_F_NOTILT', desc: 'As Depan Tidak Miring' }, { b: 2, name: 'AXLE_F_SOLID', desc: 'As Depan Solid' }, { b: 4, name: 'AXLE_F_MCPHERSON', desc: 'Suspensi McPherson Depan' }, { b: 8, name: 'AXLE_F_REVERSE', desc: 'As Depan Terbalik' } ] },
+      { digit: 6, bits: [ { b: 1, name: 'AXLE_R_NOTILT', desc: 'As Belakang Tidak Miring' }, { b: 2, name: 'AXLE_R_SOLID', desc: 'As Belakang Solid' }, { b: 4, name: 'AXLE_R_MCPHERSON', desc: 'Suspensi McPherson Belakang' }, { b: 8, name: 'AXLE_R_REVERSE', desc: 'As Belakang Terbalik' } ] },
+      { digit: 7, bits: [ { b: 1, name: 'IS_BIKE', desc: 'Fisika Motor/Sepeda' }, { b: 2, name: 'IS_HELI', desc: 'Fisika Helikopter' }, { b: 4, name: 'IS_PLANE', desc: 'Fisika Pesawat' }, { b: 8, name: 'IS_BOAT', desc: 'Fisika Kapal/Perahu' } ] },
+      { digit: 8, bits: [ { b: 1, name: 'BOUNCE_PANELS', desc: 'Panel Membal Tabrakan' }, { b: 2, name: 'DOUBLE_RWHEELS', desc: 'Roda Belakang Ganda' }, { b: 4, name: 'FORCE_GROUND_CLEARANCE', desc: 'Paksa Jarak Tanah Tinggi' }, { b: 8, name: 'IS_HATCHBACK', desc: 'Bentuk Hatchback' } ] }
+    ];
+
+    const HANDLING_FLAGS_DEF = [
+      { digit: 1, bits: [ { b: 1, name: '1G_BOOST', desc: 'Boost Gigi 1' }, { b: 2, name: '2G_BOOST', desc: 'Boost Gigi 2' }, { b: 4, name: 'NPC_ANTI_ROLL', desc: 'Anti Guling NPC' }, { b: 8, name: 'NPC_NEUTRAL_HANDL', desc: 'Handling Netral NPC' } ] },
+      { digit: 2, bits: [ { b: 1, name: 'NO_HANDBRAKE', desc: 'Matikan Rem Tangan' }, { b: 2, name: 'STEER_REARWHEELS', desc: 'Belok Roda Belakang' }, { b: 4, name: 'HB_REARWHEEL_STEER', desc: 'Rem Tangan Belokkan Roda Belakang' }, { b: 8, name: 'ALT_STEER_OPT', desc: 'Kemudi Alternatif' } ] },
+      { digit: 3, bits: [ { b: 1, name: 'WHEEL_F_NARROW2', desc: 'Roda Depan Sempit Lv2' }, { b: 2, name: 'WHEEL_F_NARROW', desc: 'Roda Depan Sempit' }, { b: 4, name: 'WHEEL_F_WIDE', desc: 'Roda Depan Lebar' }, { b: 8, name: 'WHEEL_F_WIDE2', desc: 'Roda Depan Lebar Lv2' } ] },
+      { digit: 4, bits: [ { b: 1, name: 'WHEEL_R_NARROW2', desc: 'Roda Belakang Sempit Lv2' }, { b: 2, name: 'WHEEL_R_NARROW', desc: 'Roda Belakang Sempit' }, { b: 4, name: 'WHEEL_R_WIDE', desc: 'Roda Belakang Lebar' }, { b: 8, name: 'WHEEL_R_WIDE2', desc: 'Roda Belakang Lebar Lv2' } ] },
+      { digit: 5, bits: [ { b: 1, name: 'HYDRAULIC_GEOM', desc: 'Geometri Hidrolik' }, { b: 2, name: 'HYDRAULIC_INST', desc: 'Terpasang Hidrolik' }, { b: 4, name: 'HYDRAULIC_NONE', desc: 'Dilarang Hidrolik' }, { b: 8, name: 'NOS_INST', desc: 'Terpasang Nitro/NOS' } ] },
+      { digit: 6, bits: [ { b: 1, name: 'OFFROAD_ABILITY', desc: 'Kemampuan Offroad 1' }, { b: 2, name: 'OFFROAD_ABILITY2', desc: 'Kemampuan Offroad 2' }, { b: 4, name: 'HALOGEN_LIGHTS', desc: 'Lampu Halogen Terang' }, { b: 8, name: 'PROC_REARWHEEL_1ST', desc: 'Proses Roda Belakang 1st' } ] },
+      { digit: 7, bits: [ { b: 1, name: 'USE_MAXSP_LIMIT', desc: 'Gunakan Limit MaxSpeed' }, { b: 2, name: 'LOW_RIDER', desc: 'Kategori Modding Lowrider' }, { b: 4, name: 'STREET_RACER', desc: 'Kategori Modding Street Racer' } ] },
+      { digit: 8, bits: [ { b: 1, name: 'SWINGING_CHASSIS', desc: 'Sasis Bergoyang/Empuk' } ] }
+    ];
+
+    // DRIFT BATCH PRESET DATA
+    const DRIFT_BATCH_PRESET = {
+      mass: "4100.0",
+      turnmass: "8000.0",
+      drag: "7.0",
+      centerx: "0.0",
+      centery: "0.0",
+      centerz: "-0.5",
+      submerged: "75",
+      tractionmult: "0.35",
+      tractionloss: "0.7",
+      tractionbias: "0.54",
+      gears: "5",
+      maxspeed: "320.0",
+      accel: "800.0",
+      inertia: "90.0",
+      drivetype: "4",
+      enginetype: "P",
+      brake: "24.0",
+      brakebias: "1.01",
+      abs: "0",
+      steer: "55.0",
+      susforce: "0.99",
+      susdamp: "0.205",
+      sushighspd: "1.0",
+      susupper: "0.18",
+      suslower: "-0.14",
+      susbias: "0.33",
+      antidive: "0.57",
+      handlingflags: "D1400000"
+    };
+
+    // Default Preset GTA SA Handling Lines
+    const INITIAL_PRESET_CFG = 
+`LANDSTAL 1700.0 4000.0 2.0 0.0 0.0 -0.1 70 0.75 0.85 0.47 5 160.0 16.0 10.0 4 P 8.0 0.55 0 35.0 1.0 0.08 0.0 0.30 -0.15 0.5 0.25 0.2 0.00 35000 00020000 00000000 0 0 0
+BRAVURA 1400.0 3000.0 2.0 0.0 0.0 -0.1 70 0.70 0.84 0.52 5 150.0 14.0 10.0 F P 7.0 0.53 0 35.0 1.0 0.10 0.0 0.30 -0.15 0.5 0.25 0.2 0.00 12000 00000000 00000000 0 0 0
+BUFFALO 1500.0 3200.0 1.9 0.0 0.0 -0.1 70 0.80 0.88 0.50 5 200.0 24.0 10.0 R P 10.0 0.53 0 35.0 1.2 0.15 0.0 0.25 -0.10 0.5 0.25 0.2 0.00 35000 00004000 00000000 0 0 0
+LINERUN 6000.0 15000.0 5.0 0.0 0.0 -0.3 75 0.55 0.75 0.45 4 110.0 9.0 20.0 R D 5.0 0.50 0 30.0 0.6 0.05 0.0 0.45 -0.20 0.5 0.25 0.2 0.00 40000 40000000 00000000 0 0 0
+INFERNUS 1400.0 3000.0 1.5 0.0 0.0 -0.2 70 0.90 0.95 0.50 5 240.0 36.0 10.0 4 P 11.0 0.53 0 35.0 1.4 0.20 0.0 0.20 -0.08 0.5 0.25 0.2 0.00 95000 00004000 00000000 0 0 0
+ADMIRAL 1600.0 3500.0 2.0 0.0 0.0 -0.1 70 0.75 0.85 0.48 5 165.0 18.0 10.0 R P 8.5 0.53 0 35.0 1.0 0.09 0.0 0.30 -0.12 0.5 0.25 0.2 0.00 25000 00000000 00000000 0 0 0
+ELEGY 1500.0 3200.0 1.8 0.0 0.0 -0.15 70 0.85 0.90 0.50 5 200.0 28.0 10.0 R P 10.5 0.52 0 35.0 1.2 0.14 0.0 0.25 -0.10 0.5 0.25 0.2 0.00 35000 00004000 00000004 0 0 0
+SULTAN 1400.0 3100.0 1.7 0.0 0.0 -0.1 70 0.85 0.92 0.50 5 200.0 28.0 10.0 4 P 10.0 0.52 0 35.0 1.3 0.16 0.0 0.25 -0.10 0.5 0.25 0.2 0.00 38000 00004000 00000004 0 0 0
+NRG500 450.0 900.0 1.5 0.0 0.0 0.0 70 0.90 0.95 0.50 5 220.0 42.0 10.0 R P 12.0 0.53 0 35.0 1.5 0.20 0.0 0.15 -0.05 0.5 0.15 0.0 0.00 50000 00010000 00000000 0 0 0
+SANDKING 2200.0 6000.0 2.5 0.0 0.0 -0.3 70 0.75 0.85 0.50 5 170.0 22.0 10.0 4 P 9.0 0.55 0 35.0 1.1 0.10 0.0 0.35 -0.18 0.5 0.25 0.2 0.00 45000 00020000 00000020 0 0 0
+CHEETAH 1300.0 2800.0 1.6 0.0 0.0 -0.2 70 0.88 0.93 0.50 5 230.0 32.0 10.0 R P 11.0 0.53 0 35.0 1.3 0.18 0.0 0.22 -0.09 0.5 0.25 0.2 0.00 85000 00004000 00000000 0 0 0
+TURISMO 1400.0 2900.0 1.5 0.0 0.0 -0.2 70 0.90 0.95 0.50 5 240.0 35.0 10.0 4 P 11.5 0.53 0 35.0 1.4 0.19 0.0 0.20 -0.08 0.5 0.25 0.2 0.00 95000 00004000 00000000 0 0 0
+SANCHEZ 250.0 500.0 1.6 0.0 0.0 0.1 70 0.85 0.90 0.50 5 150.0 25.0 10.0 R P 9.0 0.52 0 35.0 1.2 0.15 0.0 0.25 -0.10 0.5 0.15 0.0 0.00 10000 00010000 00000020 0 0 0`;
+
+    // ==========================================
+    // APP STATE
+    // ==========================================
+    let carsData = [];         // Array of car objects
+    let originalCarsData = []; // Clone for initial values
+    let activeView = 'table';  // 'table', 'card', 'batch'
+    let activeCarIndex = 0;
+    let activeInspectorCategory = 'dimensi';
+    let activeBatchCategory = 'dimensi';
+
+    // Batch state per key
+    let batchState = {};
+    FIELD_KEYS.forEach(k => {
+      batchState[k] = {
+        enabled: false,
+        value: FIELD_METADATA[k].options ? FIELD_METADATA[k].options[0] : (FIELD_METADATA[k].type === 'hex' ? '00000000' : 0),
+        hexMode: 'overwrite' // 'or', 'andnot', 'overwrite'
+      };
+    });
+
+    let batchSelectedCars = new Set();
+
+    // ==========================================
+    // INITIALIZATION & PARSER
+    // ==========================================
+    window.onload = function() {
+      document.getElementById('rawCfgInput').value = INITIAL_PRESET_CFG;
+      parseRawInput(true);
+    };
+
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const bg = type === 'success' ? 'bg-emerald-600' : (type === 'amber' ? 'bg-amber-600' : 'bg-slate-800');
+      toast.className = `${bg} text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl border border-white/10 flex items-center gap-2 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0`;
+      toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>${msg}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 2500);
+    }
+
+    function toggleRawPanel() {
+      const panel = document.getElementById('rawPanel');
+      panel.classList.toggle('hidden');
+    }
+
+    function clearRawText() {
+      document.getElementById('rawCfgInput').value = '';
+    }
+
+    function loadPresetData() {
+      document.getElementById('rawCfgInput').value = INITIAL_PRESET_CFG;
+      parseRawInput();
+      showToast('Preset Original GTA SA berhasil dimuat! (Damage auto-reset 0.00)');
+    }
+
+    function parseRawInput(isInitial = false) {
+      const text = document.getElementById('rawCfgInput').value.trim();
+      if (!text) {
+        if (!isInitial) showToast('Teks config kosong!', 'amber');
+        return;
+      }
+
+      const lines = text.split('\n');
+      const parsed = [];
+
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith(';') || trimmed.startsWith('!')) return;
+
+        const parts = trimmed.split(/\s+/);
+        if (parts.length >= 36) {
+          const carObj = {};
+          FIELD_KEYS.forEach((key, idx) => {
+            carObj[key] = parts[idx];
+          });
+          // FORCED REQUIREMENT: Set damage (ab) to 0.00 automatically
+          carObj.damage = "0.00";
+          parsed.push(carObj);
+        }
+      });
+
+      if (parsed.length === 0) {
+        if (!isInitial) showToast('Tidak ada baris handling valid (36 kolom) ditemukan.', 'amber');
+        return;
+      }
+
+      carsData = parsed;
+      originalCarsData = JSON.parse(JSON.stringify(parsed));
+      activeCarIndex = 0;
+      batchSelectedCars = new Set(carsData.map((_, i) => i));
+
+      renderAll();
+      if (!isInitial) {
+        showToast(`Berhasil memuat ${carsData.length} data kendaraan (Damage di-reset ke 0.00).`);
+        document.getElementById('rawPanel').classList.add('hidden');
+      }
+    }
+
+    function generateOutputCfgText() {
+      return carsData.map(car => {
+        return FIELD_KEYS.map(k => {
+          // Always ensure damage is outputted as 0.00 in slot 'ab'
+          if (k === 'damage') return '0.00';
+          return car[k];
+        }).join('  ');
+      }).join('\n');
+    }
+
+    function copyCurrentCfg() {
+      const text = generateOutputCfgText();
+      const dummy = document.createElement("textarea");
+      document.body.appendChild(dummy);
+      dummy.value = text;
+      dummy.select();
+      document.execCommand("copy");
+      document.body.removeChild(dummy);
+      showToast("✅ Berhasil menyalin CFG! (Damage dijamin 0.00)");
+    }
+
+    // ==========================================
+    // VIEW SWITCHER & RENDER CONTROLLER
+    // ==========================================
+    function switchView(viewName) {
+      activeView = viewName;
+      ['table', 'card', 'batch'].forEach(v => {
+        const btn = document.getElementById(`nav-${v}`);
+        const sec = document.getElementById(`view-${v}`);
+        if (v === viewName) {
+          btn.className = "nav-tab flex-1 sm:flex-none px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-emerald-400 bg-slate-800 border border-slate-700 shadow-md";
+          sec.classList.remove('hidden');
+        } else {
+          btn.className = "nav-tab flex-1 sm:flex-none px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200";
+          sec.classList.add('hidden');
+        }
+      });
+
+      renderAll();
+    }
+
+    function renderAll() {
+      renderTable();
+      renderCardView();
+      renderBatchView();
+    }
+
+    // ==========================================
+    // MODE 1: TABEL (TABLE VIEW)
+    // ==========================================
+    function renderTable() {
+      const search = (document.getElementById('tableSearchInput')?.value || '').toLowerCase();
+      const filtered = carsData.filter(c => c.identifier.toLowerCase().includes(search));
+      
+      document.getElementById('vehicleCountBadge').innerText = filtered.length;
+
+      // Render Header (Excluding 'damage')
+      const headerRow = document.getElementById('tableHeaderRow');
+      headerRow.innerHTML = `
+        <th class="p-2.5 sticky-col-header text-emerald-400 font-bold border-r border-slate-800">MOBIL (A)</th>
+        ${VISIBLE_FIELD_KEYS.slice(1).map(k => {
+          const meta = FIELD_METADATA[k];
+          return `<th class="p-2.5 whitespace-nowrap border-r border-slate-800/40">${meta.label} <span class="text-slate-500">(${meta.code})</span></th>`;
+        }).join('')}
+      `;
+
+      // Render Body
+      const tbody = document.getElementById('tableBody');
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="36" class="p-6 text-center text-slate-500">Tidak ada kendaraan ditemukan.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(car => {
+        const carOriginalIdx = carsData.indexOf(car);
+        return `
+          <tr class="hover:bg-slate-800/50 transition">
+            <td class="p-2.5 font-bold text-emerald-400 sticky-col-cell border-r border-slate-800 cursor-pointer hover:underline" onclick="jumpToCard(${carOriginalIdx}, 'dimensi')">
+              ${car.identifier}
+            </td>
+            ${VISIBLE_FIELD_KEYS.slice(1).map(k => {
+              const meta = FIELD_METADATA[k];
+              return `
+                <td class="p-2.5 whitespace-nowrap border-r border-slate-800/30 text-slate-300 hover:bg-emerald-500/10 hover:text-emerald-300 cursor-pointer transition" onclick="jumpToCard(${carOriginalIdx}, '${meta.cat}', '${k}')">
+                  ${car[k]}
+                </td>
+              `;
+            }).join('')}
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function jumpToCard(carIndex, category, fieldKey = null) {
+      activeCarIndex = carIndex;
+      activeInspectorCategory = category;
+      switchView('card');
+      
+      if (fieldKey) {
+        setTimeout(() => {
+          const el = document.getElementById(`field-input-${fieldKey}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('ring-2', 'ring-emerald-500');
+            setTimeout(() => el.classList.remove('ring-2', 'ring-emerald-500'), 1500);
+          }
+        }, 150);
+      }
+    }
+
+    // ==========================================
+    // MODE 2: KARTU (INSPECTOR VIEW)
+    // ==========================================
+    function renderCardView() {
+      if (carsData.length === 0) return;
+
+      // Render Car Selector Dropdown
+      const selector = document.getElementById('cardCarSelector');
+      selector.innerHTML = carsData.map((c, i) => `
+        <option value="${i}" ${i === activeCarIndex ? 'selected' : ''}>${i + 1}. ${c.identifier}</option>
+      `).join('');
+
+      // Category Tabs Styling
+      ['dimensi', 'transmisi', 'suspensi', 'modelflags', 'handlingflags', 'lampu'].forEach(cat => {
+        const btn = document.getElementById(`cat-${cat}`);
+        if (cat === activeInspectorCategory) {
+          btn.className = "cat-tab px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm";
+        } else {
+          btn.className = "cat-tab px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200";
+        }
+      });
+
+      renderInspectorFields();
+    }
+
+    function onCardCarSelect(val) {
+      activeCarIndex = parseInt(val);
+      renderCardView();
+    }
+
+    function navigateCar(dir) {
+      activeCarIndex = (activeCarIndex + dir + carsData.length) % carsData.length;
+      renderCardView();
+    }
+
+    function switchCategory(cat) {
+      activeInspectorCategory = cat;
+      renderCardView();
+    }
+
+    function resetCurrentCar() {
+      if (carsData[activeCarIndex] && originalCarsData[activeCarIndex]) {
+        carsData[activeCarIndex] = JSON.parse(JSON.stringify(originalCarsData[activeCarIndex]));
+        carsData[activeCarIndex].damage = "0.00";
+        renderAll();
+        showToast(`Nilai ${carsData[activeCarIndex].identifier} dikembalikan ke awal.`);
+      }
+    }
+
+    function resetSingleParam(key) {
+      const origVal = originalCarsData[activeCarIndex][key];
+      carsData[activeCarIndex][key] = origVal;
+      if (key === 'damage') carsData[activeCarIndex].damage = "0.00";
+      renderAll();
+      showToast(`Parameter ${key} dikembalikan ke: ${origVal}`);
+    }
+
+    function renderInspectorFields() {
+      const container = document.getElementById('inspectorFieldsContainer');
+      const car = carsData[activeCarIndex];
+      const origCar = originalCarsData[activeCarIndex];
+      if (!car) return;
+
+      // Filter visible keys in current category (Excluding 'damage')
+      const keys = VISIBLE_FIELD_KEYS.filter(k => FIELD_METADATA[k].cat === activeInspectorCategory);
+
+      if (activeInspectorCategory === 'modelflags' || activeInspectorCategory === 'handlingflags') {
+        const key = keys[0];
+        const isModel = key === 'modelflags';
+        const defs = isModel ? MODEL_FLAGS_DEF : HANDLING_FLAGS_DEF;
+        container.innerHTML = renderHexVisualEditor(key, car[key], origCar[key], defs);
+        return;
+      }
+
+      container.innerHTML = keys.map(k => {
+        const meta = FIELD_METADATA[k];
+        const val = car[k];
+        const origVal = origCar[k];
+        const isModified = val !== origVal;
+
+        let inputControl = '';
+
+        if (meta.type === 'enum') {
+          inputControl = `
+            <div class="flex items-center gap-1">
+              ${meta.options.map(opt => `
+                <button onclick="updateCarField('${k}', '${opt}')" class="flex-1 py-2 text-xs font-bold rounded-lg border transition ${val === opt ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg' : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'}">
+                  ${opt}
+                </button>
+              `).join('')}
+            </div>
+          `;
+        } else {
+          inputControl = `
+            <input type="number" id="field-input-${k}" value="${val}" step="${meta.step || 'any'}" oninput="updateCarField('${k}', this.value)" class="w-full bg-slate-950 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border ${isModified ? 'border-amber-500/70 bg-amber-500/5' : 'border-slate-800'} focus:border-emerald-500">
+          `;
+        }
+
+        return `
+          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 space-y-2">
+            <div class="flex items-center justify-between flex-wrap gap-1">
+              <label class="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                <span class="text-emerald-400 font-mono font-bold">(${meta.code})</span> ${meta.label}
+              </label>
+              <div class="flex items-center gap-2 text-[11px]">
+                <span class="text-slate-500 font-mono">Awal: <b class="text-slate-400">${origVal}</b></span>
+                ${isModified ? `
+                  <button onclick="resetSingleParam('${k}')" title="Kembalikan nilai awal" class="text-amber-400 hover:text-amber-300">
+                    <i class="fa-solid fa-rotate-left"></i>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+            ${inputControl}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateCarField(key, val) {
+      carsData[activeCarIndex][key] = val;
+      renderTable();
+    }
+
+    // ==========================================
+    // VISUAL HEX EDITOR (BITWISE AF & AG)
+    // ==========================================
+    function hexToNibbles(hexStr) {
+      let cleanHex = (hexStr || '00000000').toUpperCase().replace(/[^0-9A-F]/g, '');
+      cleanHex = cleanHex.padStart(8, '0').substring(0, 8);
+      const nibbles = [];
+      for (let i = 0; i < 8; i++) {
+        nibbles.push(parseInt(cleanHex[i], 16) || 0);
+      }
+      return nibbles;
+    }
+
+    function nibblesToHex(nibbles) {
+      let res = '';
+      for (let i = 0; i < 8; i++) {
+        let val = Math.min(15, Math.max(0, nibbles[i] || 0));
+        res += val.toString(16).toUpperCase();
+      }
+      return res;
+    }
+
+    function renderHexVisualEditor(key, currentHex, origHex, digitDefs) {
+      const nibbles = hexToNibbles(currentHex);
+
+      return `
+        <div class="space-y-4">
+          <!-- Main Hex Input Header -->
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <div class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                <i class="fa-solid fa-microchip text-emerald-400"></i> ${FIELD_METADATA[key].label}
+              </div>
+              <div class="text-[11px] text-slate-500 font-mono">Hex Original: <span class="text-slate-300">${origHex}</span></div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input type="text" value="${currentHex}" maxlength="8" oninput="updateCarField('${key}', this.value.toUpperCase()); renderCardView();" class="w-28 bg-slate-900 text-emerald-400 font-mono font-bold text-sm px-2.5 py-1 rounded border border-emerald-500/40 text-center uppercase">
+              <button onclick="resetSingleParam('${key}')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs border border-slate-700">
+                <i class="fa-solid fa-rotate-left"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 8 Digits Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            ${digitDefs.map(d => {
+              const digitIdx = d.digit - 1;
+              const nibbleVal = nibbles[digitIdx];
+
+              return `
+                <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 space-y-2">
+                  <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                    <span class="text-xs font-bold text-emerald-400 font-mono">Digit ${d.digit} <span class="text-slate-500">(Val: ${nibbleVal.toString(16).toUpperCase()})</span></span>
+                    <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono">Bitmask</span>
+                  </div>
+
+                  <div class="space-y-1.5">
+                    ${d.bits.map(bit => {
+                      const isChecked = (nibbleVal & bit.b) !== 0;
+                      return `
+                        <label class="flex items-center justify-between p-2 rounded-lg bg-slate-900/50 hover:bg-slate-900 border border-slate-800/60 cursor-pointer transition">
+                          <div class="flex items-center gap-2">
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleHexBit('${key}', ${digitIdx}, ${bit.b}, this.checked)" class="w-4 h-4 accent-emerald-500 rounded">
+                            <span class="text-xs font-semibold text-slate-200">${bit.name}</span>
+                          </div>
+                          <span class="text-[11px] text-slate-400">${bit.desc}</span>
+                        </label>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleHexBit(key, digitIdx, bitValue, isChecked) {
+      const currentHex = carsData[activeCarIndex][key];
+      const nibbles = hexToNibbles(currentHex);
+
+      if (isChecked) {
+        nibbles[digitIdx] |= bitValue;
+      } else {
+        nibbles[digitIdx] &= ~bitValue;
+      }
+
+      const newHex = nibblesToHex(nibbles);
+      carsData[activeCarIndex][key] = newHex;
+      renderTable();
+      renderCardView();
+    }
+
+    // ==========================================
+    // MODE 3: EDIT MASAL (BATCH EDIT)
+    // ==========================================
+    function renderBatchView() {
+      // Category Tabs
+      ['dimensi', 'transmisi', 'suspensi', 'modelflags', 'handlingflags', 'lampu'].forEach(cat => {
+        const btn = document.getElementById(`bcat-${cat}`);
+        if (cat === activeBatchCategory) {
+          btn.className = "bcat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+        } else {
+          btn.className = "bcat-tab px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition text-slate-400 hover:text-slate-200";
+        }
+      });
+
+      renderBatchFields();
+      renderBatchCarList();
+    }
+
+    function switchBatchCategory(cat) {
+      activeBatchCategory = cat;
+      renderBatchView();
+    }
+
+    function applyDriftBatchPreset() {
+      // Reset all batch toggles to false first
+      FIELD_KEYS.forEach(k => {
+        batchState[k].enabled = false;
+      });
+
+      // Apply specified active fields from DRIFT_BATCH_PRESET
+      Object.keys(DRIFT_BATCH_PRESET).forEach(k => {
+        if (batchState[k]) {
+          batchState[k].enabled = true;
+          batchState[k].value = DRIFT_BATCH_PRESET[k];
+          if (FIELD_METADATA[k].type === 'hex') {
+            batchState[k].hexMode = 'overwrite';
+          }
+        }
+      });
+
+      renderBatchView();
+      showToast('🏎️ Preset Drift berhasil dimuat ke formulir Batch!');
+    }
+
+    function renderBatchFields() {
+      const container = document.getElementById('batchFieldsContainer');
+      const keys = VISIBLE_FIELD_KEYS.filter(k => FIELD_METADATA[k].cat === activeBatchCategory);
+
+      container.innerHTML = keys.map(k => {
+        const meta = FIELD_METADATA[k];
+        const state = batchState[k];
+
+        let controlHtml = '';
+
+        if (meta.type === 'hex') {
+          controlHtml = `
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <label class="text-xs text-slate-400">Mode Aksi Bitwise:</label>
+                <select onchange="batchState['${k}'].hexMode = this.value" ${!state.enabled ? 'disabled' : ''} class="bg-slate-950 text-xs text-emerald-400 font-semibold px-2 py-1 rounded border border-slate-800">
+                  <option value="or" ${state.hexMode === 'or' ? 'selected' : ''}>➕ Tambah Bit (OR)</option>
+                  <option value="andnot" ${state.hexMode === 'andnot' ? 'selected' : ''}>➖ Hapus Bit (AND NOT)</option>
+                  <option value="overwrite" ${state.hexMode === 'overwrite' ? 'selected' : ''}>🔄 Ganti Total (Overwrite)</option>
+                </select>
+              </div>
+              <input type="text" value="${state.value}" maxlength="8" oninput="batchState['${k}'].value = this.value.toUpperCase()" ${!state.enabled ? 'disabled' : ''} class="w-full bg-slate-950 text-emerald-400 font-mono font-bold text-sm px-3 py-2 rounded-lg border border-slate-800 uppercase disabled:opacity-40">
+            </div>
+          `;
+        } else if (meta.type === 'enum') {
+          controlHtml = `
+            <select onchange="batchState['${k}'].value = this.value" ${!state.enabled ? 'disabled' : ''} class="w-full bg-slate-950 text-slate-100 font-semibold text-xs px-3 py-2 rounded-lg border border-slate-800 disabled:opacity-40">
+              ${meta.options.map(opt => `<option value="${opt}" ${state.value === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+            </select>
+          `;
+        } else {
+          controlHtml = `
+            <input type="number" value="${state.value}" step="${meta.step || 'any'}" oninput="batchState['${k}'].value = this.value" ${!state.enabled ? 'disabled' : ''} class="w-full bg-slate-950 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-800 disabled:opacity-40">
+          `;
+        }
+
+        return `
+          <div class="bg-slate-950/70 p-3 rounded-xl border ${state.enabled ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-slate-800/80'} transition space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                <span class="text-emerald-400 font-mono">(${meta.code})</span> ${meta.label}
+              </label>
+
+              <!-- Toggle Enable -->
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <span class="text-[11px] font-bold ${state.enabled ? 'text-emerald-400' : 'text-slate-500'}">${state.enabled ? 'AKTIF' : 'OFF'}</span>
+                <input type="checkbox" ${state.enabled ? 'checked' : ''} onchange="toggleBatchField('${k}', this.checked)" class="w-4 h-4 accent-emerald-500 rounded">
+              </label>
+            </div>
+            ${controlHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleBatchField(key, isEnabled) {
+      batchState[key].enabled = isEnabled;
+      renderBatchFields();
+    }
+
+    function renderBatchCarList() {
+      const container = document.getElementById('batchCarList');
+      container.innerHTML = carsData.map((c, i) => {
+        const isChecked = batchSelectedCars.has(i);
+        return `
+          <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-950 border ${isChecked ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-slate-800'} cursor-pointer text-xs transition">
+            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleBatchCar(${i}, this.checked)" class="w-3.5 h-3.5 accent-emerald-500 rounded">
+            <span class="font-bold text-slate-200 truncate">${c.identifier}</span>
+          </label>
+        `;
+      }).join('');
+    }
+
+    function toggleBatchCar(index, isChecked) {
+      if (isChecked) batchSelectedCars.add(index);
+      else batchSelectedCars.delete(index);
+      renderBatchCarList();
+    }
+
+    function selectAllBatchVehicles(shouldSelect) {
+      if (shouldSelect) {
+        batchSelectedCars = new Set(carsData.map((_, i) => i));
+      } else {
+        batchSelectedCars.clear();
+      }
+      renderBatchCarList();
+    }
+
+    function applyBatchEdit() {
+      if (batchSelectedCars.size === 0) {
+        showToast('Pilih setidaknya 1 mobil target!', 'amber');
+        return;
+      }
+
+      // Check active visible keys
+      const activeKeys = VISIBLE_FIELD_KEYS.filter(k => batchState[k].enabled);
+      if (activeKeys.length === 0) {
+        showToast('Aktifkan setidaknya 1 sakelar parameter [AKTIF]!', 'amber');
+        return;
+      }
+
+      let modifiedCount = 0;
+
+      batchSelectedCars.forEach(carIdx => {
+        const car = carsData[carIdx];
+        activeKeys.forEach(k => {
+          const state = batchState[k];
+          const meta = FIELD_METADATA[k];
+
+          if (meta.type === 'hex') {
+            const targetNibbles = hexToNibbles(car[k]);
+            const valNibbles = hexToNibbles(state.value);
+
+            if (state.hexMode === 'or') {
+              for (let i = 0; i < 8; i++) targetNibbles[i] |= valNibbles[i];
+            } else if (state.hexMode === 'andnot') {
+              for (let i = 0; i < 8; i++) targetNibbles[i] &= ~valNibbles[i];
+            } else {
+              for (let i = 0; i < 8; i++) targetNibbles[i] = valNibbles[i];
+            }
+
+            car[k] = nibblesToHex(targetNibbles);
+          } else {
+            car[k] = state.value;
+          }
+        });
+
+        // Always keep damage reset to 0.00
+        car.damage = "0.00";
+        modifiedCount++;
+      });
+
+      renderAll();
+      showToast(`⚡ Berhasil menerapkan perubahan ke ${modifiedCount} mobil!`);
+    }
+  </script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log('App siap dipakai offline!'))
+        .catch((err) => console.error('Gagal simpan cache:', err));
+    });
+  }
+</script>
+</body>
+</html>
